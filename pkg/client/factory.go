@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 const (
@@ -55,8 +56,9 @@ func (a *addQuery) WrappedRoundTripper() http.RoundTripper {
 }
 
 type factoryOptions struct {
-	qps   float32
-	burst int
+	qps       float32
+	burst     int
+	sharedQPS bool
 }
 
 func defaultFactoryOptions() *factoryOptions {
@@ -70,10 +72,11 @@ func defaultFactoryOptions() *factoryOptions {
 // the factory with the provided burst and qps configuration.
 //
 // See https://pkg.go.dev/k8s.io/client-go/rest#Config for more.
-func WithQPSAndBurst(qps float32, burst int) FactoryOption {
+func WithQPSAndBurst(qps float32, burst int, shared bool) FactoryOption {
 	return func(opts *factoryOptions) {
 		opts.qps = qps
 		opts.burst = burst
+		opts.sharedQPS = shared
 	}
 }
 
@@ -85,6 +88,12 @@ func NewFactory(cfg *rest.Config, impersonate bool, opts ...FactoryOption) (*Fac
 	options := defaultFactoryOptions()
 	for _, opt := range opts {
 		opt(options)
+	}
+
+	// This configures a non-default RateLimiter which is reused across all
+	// clients that are created.
+	if options.sharedQPS {
+		clientCfg.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(options.qps, options.burst)
 	}
 
 	clientCfg.QPS = options.qps
@@ -215,15 +224,16 @@ func setupConfig(ctx *types.APIRequest, cfg *rest.Config, impersonate bool) (*re
 		cfg.Impersonate.Groups = user.GetGroups()
 		cfg.Impersonate.Extra = user.GetExtra()
 	}
+
 	return cfg, nil
 }
 
 func newDynamicClient(ctx *types.APIRequest, cfg *rest.Config, impersonate bool, warningHandler rest.WarningHandler) (dynamic.Interface, error) {
 	cfg, err := setupConfig(ctx, cfg, impersonate)
-	cfg.WarningHandler = warningHandler
 	if err != nil {
 		return nil, err
 	}
+	cfg.WarningHandler = warningHandler
 
 	return dynamic.NewForConfig(cfg)
 }
