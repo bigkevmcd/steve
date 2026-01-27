@@ -71,6 +71,7 @@ func (a *apiServer) common(rw http.ResponseWriter, req *http.Request) (*types.AP
 		logrus.Errorf("HTTP request failed: %v", err)
 		rw.Write([]byte(err.Error()))
 		rw.WriteHeader(http.StatusInternalServerError)
+		return nil, false
 	}
 
 	urlBuilder, err := urlbuilder.NewPrefixed(req, schemas, "v1")

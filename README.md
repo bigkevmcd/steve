@@ -734,7 +734,6 @@ a directory called `./ui`, then create a route that serves a custom UI handler:
 import (
 	"net/http"
 	"github.com/rancher/steve/pkg/ui"
-	"github.com/gorilla/mux"
 )
 
 func routes() http.Handler {
@@ -743,7 +742,7 @@ func routes() http.Handler {
 			return "./ui/index.html"
 		},
 	}
-	router := mux.NewRouter()
+	router := http.NewServeMux()
 	router.Handle("/hello", custom.IndexFile())
 	return router
 ```
