@@ -17,6 +17,8 @@ replace (
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 )
 
+replace github.com/rancher/apiserver => ../apiserver
+
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/evanphx/json-patch v5.9.11+incompatible
@@ -24,7 +26,6 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/google/gnostic-models v0.7.0
 	github.com/google/go-cmp v0.7.0
-	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/pborman/uuid v1.2.1
 	github.com/pkg/errors v0.9.1
